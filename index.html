@@ -318,27 +318,31 @@
                 </tr>
             </table>
 
-            <!-- TULISAN PENJELASAN KALIBRASI JAM KERJA (FONT KECIL UNTUK SCREENSHOT) -->
+            <!-- PENJELASAN RINGKAS NORMA & KALIBRASI (FONT KECIL DENGAN HA/HK DARI SPH) -->
             <div style="font-weight: bold; font-size: 8.5px; margin: 3px 0 1px 0; color: #1e293b;">
                 ⚡ ESTIMASI PENYELESAIAN SISA BLOK <span id="label-blok-est" style="color: #2563eb;">L34-OP20</span>
             </div>
-            <div style="font-size: 7px; color: #64748b; margin-bottom: 2px; line-height: 1.1;">
-                * Kalibrasi 10 menit/pokok | 7 Jam Kerja - 1 Jam Istirahat = 6 Jam Efektif (6 Jam x 6 Pk/Jam = Basis 36 Pk/HK)
+            <div style="font-size: 7px; color: #475569; margin-bottom: 2px; line-height: 1.15; background: #f8fafc; padding: 3px 4px; border: 1px solid #e2e8f0; border-radius: 3px;">
+                * <b>Kalibrasi Efektif</b>: 10 mnt/pk → 6 pk/jam. (7 jam kerja - 1 jam istirahat = 6 jam kerja).<br>
+                * <b>Norma Pokok/HK</b>: 6 jam × 6 pk/jam = <b>36 Pokok / HK</b>.<br>
+                * <b>Norma Ha/HK</b>: 36 pk ÷ SPH <span id="est-sph-val">119</span> = <b style="color: #047857;" id="est-ha-per-hk-val">0.30 Ha / HK</b>.
             </div>
 
-            <!-- TABEL ESTIMASI KECIL KOMPAK -->
+            <!-- TABEL ESTIMASI KECIL KOMPAK (5 KOLOM RINGKAS) -->
             <table class="est-table" style="margin-bottom: 6px;">
                 <thead>
                     <tr>
-                        <th style="width: 25%;">BASIS PK/HK</th>
-                        <th style="width: 25%;">PENGERAHAN HK/HARI</th>
-                        <th style="width: 25%;">TOTAL SISA HK</th>
-                        <th style="width: 25%;">EST. SISA HARI</th>
+                        <th style="width: 20%;">NORMA PK/HK</th>
+                        <th style="width: 20%;">NORMA HA/HK</th>
+                        <th style="width: 20%;">HK/HARI</th>
+                        <th style="width: 20%;">SISA HK</th>
+                        <th style="width: 20%;">SISA HARI</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><input type="number" id="target-pokok-per-hk" value="36" oninput="calculateRealtime()" style="font-weight: bold; color: #047857; background: #f0fdf4;"></td>
+                        <td><input type="text" id="est-ha-per-hk-display" value="0.30 Ha" readonly style="font-weight: bold; color: #047857; background: #f0fdf4;"></td>
                         <td><input type="number" id="asumsi-hk-harian" value="6" oninput="calculateRealtime()" style="font-weight: bold; color: #334155;"></td>
                         <td><input type="text" id="est-total-sisa-hk" value="0 HK" readonly style="font-weight: bold; color: #1d4ed8; background: #eff6ff;"></td>
                         <td><input type="text" id="est-sisa-hari" value="0 Hari" readonly style="font-weight: bold; color: #b45309; background: #fefce8;"></td>
@@ -381,7 +385,7 @@
             </div>
 
             <div style="margin-top: 10px; font-size: 9px; display: flex; justify-content: space-between; font-weight: bold;">
-                <div id="footer-mandor-name">DIBUAT OLEH: APOLONIA IMUNG (MANDOR UPKEEP)</div>
+                <div id="footer-mandor-name">DIBUAT OLEH: WILIBERTUS JARUT (MANDOR UPKEEP)</div>
                 <div>PT KAHAYAN AGRO PLANTATION | DIVISI 3</div>
             </div>
         </div>
@@ -728,6 +732,7 @@
 
             const haAwal = data ? data.ha : 27.20;
             const pokokAwal = data ? data.pokok : 3237;
+            const sphBlok = data ? data.sph : 119;
 
             if(data) {
                 data.haKerja = todateHa;
@@ -746,6 +751,13 @@
             document.getElementById('ha-sisa').value = haSisa.toFixed(2).replace('.', ',') + " Ha";
             document.getElementById('pokok-sisa').value = pokokSisa.toLocaleString('id-ID') + " POKOK";
 
+            // PERHITUNGAN NORMA HA / HK (36 / SPH)
+            const haPerHk = sphBlok > 0 ? (targetPokokPerHk / sphBlok) : 0;
+            document.getElementById('est-sph-val').innerText = sphBlok;
+            document.getElementById('est-ha-per-hk-val').innerText = haPerHk.toFixed(2).replace('.', ',') + " Ha / HK";
+            document.getElementById('est-ha-per-hk-display').value = haPerHk.toFixed(2).replace('.', ',') + " Ha";
+
+            // KALKULASI TOTAL SISA HK & ESTIMASI HARI KERJA
             const totalSisaHK = targetPokokPerHk > 0 ? (pokokSisa / targetPokokPerHk) : 0;
             const estimasiSisaHari = asumsiHkHarian > 0 ? (totalSisaHK / asumsiHkHarian) : 0;
 
@@ -830,7 +842,7 @@
                              `PT KAHAYAN AGRO PLANTATION\n` +
                              `━━━━━━━━━━━━━━\n\n` +
                              `🗓 *HARI/TANGGAL:* ${tanggal}\n\n` +
-                             `👷 *MANDOR:* APOLONIA IMUNG\n\n` +
+                             `👷 *MANDOR:* WILIBERTUS JARUT\n\n` +
                              `━━━━━━━━━━━━━━\n\n` +
                              `🔹 *HASIL KERJA HARI INI*\n\n` +
                              `• Blok Kerja       : ${blokKerja}\n` +
@@ -1075,4 +1087,3 @@
     </script>
 </body>
 </html>
-
