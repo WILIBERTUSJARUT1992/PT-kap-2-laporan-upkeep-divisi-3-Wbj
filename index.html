@@ -79,6 +79,7 @@
 
         .btn-save { background-color: #059669; }
         .btn-copy { background-color: #7c3aed; }
+        .btn-wa { background-color: #16a34a; }
         .btn-pdf { background-color: #2563eb; }
         .btn-archive { background-color: #d97706; }
 
@@ -186,6 +187,7 @@
             <div class="header-actions">
                 <button class="btn-action btn-save" onclick="saveDataPermanently()">💾 Simpan</button>
                 <button class="btn-action btn-copy" onclick="copyReportToGroup()">📋 Salin Laporan</button>
+                <button class="btn-action btn-wa" onclick="shareReportToWhatsApp()">📲 WhatsApp</button>
                 <button class="btn-action btn-pdf" onclick="window.print()">📄 PDF</button>
                 <button class="btn-action btn-archive" onclick="resetData()">📁 Arsip</button>
             </div>
@@ -216,7 +218,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <select id="filter-hari" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString()">
+                        <select id="filter-hari" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString(true)">
                             <option value="SENIN">SENIN</option>
                             <option value="SELASA" selected>SELASA</option>
                             <option value="RABU">RABU</option>
@@ -227,20 +229,20 @@
                         </select>
                     </td>
                     <td>
-                        <select id="filter-tgl" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString()">
+                        <select id="filter-tgl" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString(true)">
                             <option value="01">01</option><option value="02">02</option><option value="03" selected>03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option>
                             <option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
                             <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option>
                         </select>
                     </td>
                     <td>
-                        <select id="filter-bulan" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString()">
+                        <select id="filter-bulan" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString(true)">
                             <option value="JANUARI">JANUARI</option><option value="FEBRUARI">FEBRUARI</option><option value="MARET">MARET</option><option value="APRIL">APRIL</option><option value="MEI">MEI</option><option value="JUNI">JUNI</option>
                             <option value="JULI">JULI</option><option value="AGUSTUS">AGUSTUS</option><option value="SEPTEMBER">SEPTEMBER</option><option value="OKTOBER">OKTOBER</option><option value="NOVEMBER" selected>NOVEMBER</option><option value="DESEMBER">DESEMBER</option>
                         </select>
                     </td>
                     <td>
-                        <select id="filter-tahun" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString()">
+                        <select id="filter-tahun" style="padding: 5px; font-weight: bold; font-size: 10px;" onchange="updateFullTanggalString(true)">
                             <option value="2026" selected>2026</option><option value="2027">2027</option><option value="2028">2028</option>
                         </select>
                     </td>
@@ -541,7 +543,7 @@
             { no: 26, tt: 2021, blok: "M33-OP21", ha: 20.76, pokok: 2450, sph: 118, haKerja: 0, pokokKerja: 0, status: "BELUM" }
         ];
 
-        function updateFullTanggalString() {
+        function updateFullTanggalString(loadHistory = false) {
             const hari = document.getElementById('filter-hari').value;
             const tgl = document.getElementById('filter-tgl').value;
             const bulan = document.getElementById('filter-bulan').value;
@@ -553,6 +555,74 @@
             document.querySelectorAll('.p-tgl-display').forEach(input => {
                 input.value = fullStr;
             });
+            if(loadHistory && !window.__loadingDailyRecord) loadDailyRecordForSelectedDate();
+        }
+
+        function getSelectedDateKey() {
+            return `${document.getElementById('filter-tahun').value}-${document.getElementById('filter-bulan').value}-${document.getElementById('filter-tgl').value}`;
+        }
+
+        function getDailyHistory() {
+            try { return JSON.parse(localStorage.getItem('prunperform_daily_history') || '{}'); }
+            catch(e) { return {}; }
+        }
+
+        function loadDailyRecordForSelectedDate() {
+            const key = getSelectedDateKey();
+            const history = getDailyHistory();
+            if(history[key]) {
+                applyDailyRecord(history[key]);
+                alert(`Arsip tanggal ${document.getElementById('input-tanggal-manual').value} berhasil dimuat.`);
+                return;
+            }
+            // Tanggal belum memiliki arsip: kosongkan input harian agar data tanggal lain tidak tercampur.
+            document.getElementById('hk-hi').value = '';
+            document.getElementById('ha-hi').value = '';
+            document.getElementById('pokok-hi').value = '';
+            document.getElementById('todate-hk').value = '0 HK';
+            document.getElementById('todate-hari').value = '0 HARI';
+            document.getElementById('todate-ha').value = '0';
+            document.getElementById('todate-pokok').value = '0';
+            const tbody = document.getElementById('body-pekerjaan-lain');
+            tbody.innerHTML = '';
+            addPekerjaanRow();
+            renderPekerjaanLainTab([]);
+            syncBlokTarget();
+            calculateRealtime();
+            hitungTotalPekerjaanLain();
+        }
+
+        function applyDailyRecord(data) {
+            if(!data) return;
+            window.__loadingDailyRecord = true;
+            if(data.masterBlokData) masterBlokData = data.masterBlokData;
+            renderMasterBlokTable();
+            if(data.selectedBlok) document.getElementById('select-blok-hi').value = data.selectedBlok;
+            syncBlokTarget();
+            document.getElementById('hk-hi').value = data.hkHI ?? '';
+            document.getElementById('ha-hi').value = data.haHI ?? '';
+            document.getElementById('pokok-hi').value = data.pokokHI ?? '';
+            document.getElementById('todate-hk').value = data.todateHk ?? '0 HK';
+            document.getElementById('todate-hari').value = data.todateHari ?? '0 HARI';
+            document.getElementById('todate-ha').value = data.todateHa ?? '0';
+            document.getElementById('todate-pokok').value = data.todatePokok ?? '0';
+            if(data.simBlok) document.getElementById('sim-select-blok').value = data.simBlok;
+            if(data.simHkCount) document.getElementById('sim-jumlah-hk').value = data.simHkCount;
+            if(data.targetPokokPerHk) document.getElementById('target-pokok-per-hk').value = data.targetPokokPerHk;
+            if(data.asumsiHkHarian) document.getElementById('asumsi-hk-harian').value = data.asumsiHkHarian;
+            const tbody = document.getElementById('body-pekerjaan-lain');
+            tbody.innerHTML = '';
+            (data.pekerjaanLain || []).forEach(item => {
+                const tr = document.createElement('tr');
+                let opts = '';
+                masterBlokData.forEach(b => opts += `<option value="${b.blok}" ${b.blok === item.blok ? 'selected' : ''}>${b.blok}</option>`);
+                tr.innerHTML = `<td><input type="text" class="p-tgl-display" value="${item.tgl || data.tanggal || ''}" readonly style="background:#e2e8f0;font-weight:bold;"></td><td><select class="p-blok select-blok-options">${opts}</select></td><td><input type="text" class="p-ket" value="${item.ket || ''}"></td><td><input type="text" class="p-vol" value="${item.vol || ''}"></td><td><input type="number" class="p-hk" value="${item.hk || ''}" oninput="hitungTotalPekerjaanLain()"></td>`;
+                tbody.appendChild(tr);
+            });
+            if(!tbody.children.length) addPekerjaanRow();
+            renderPekerjaanLainTab(data.pekerjaanLain || []);
+            calculateRealtime(); runSimulasiBlok(); renderAkumulasiTahunan(); hitungTotalPekerjaanLain();
+            window.__loadingDailyRecord = false;
         }
 
         function renderMasterBlokTable() {
@@ -797,87 +867,104 @@
             }
         }
 
-        function copyReportToGroup() {
+        function buildReportText() {
             const tanggal = document.getElementById('input-tanggal-manual').value;
             const blokKerja = document.getElementById('select-blok-hi').value;
             const hkHi = document.getElementById('hk-hi').value;
             const haHi = document.getElementById('ha-hi').value;
             const pokokHi = document.getElementById('pokok-hi').value;
-            
+
+            // HA awal dan pokok awal mengikuti master data blok yang dipilih.
+            const haAwal = document.getElementById('ha-awal').value;
+            const pokokAwal = document.getElementById('pokok-awal').value;
+
             const todateHk = document.getElementById('todate-hk').value;
             const todateHari = document.getElementById('todate-hari').value;
             const todateHa = document.getElementById('todate-ha').value;
             const todatePokok = document.getElementById('todate-pokok').value;
-            
+
             const haSisa = document.getElementById('ha-sisa').value;
             const pokokSisa = document.getElementById('pokok-sisa').value;
             const estHariSisa = document.getElementById('est-sisa-hari').value;
             const estHkSisa = document.getElementById('est-total-sisa-hk').value;
 
             const numberEmojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
-
             let pekerjaanLainText = "";
-            let totalHkLainVal = document.getElementById('total-hk-lain').innerText;
-            
+            const totalHkLainVal = document.getElementById('total-hk-lain').innerText;
             const rows = document.querySelectorAll('#body-pekerjaan-lain tr');
+
             rows.forEach((row, idx) => {
                 const blok = row.querySelector('.p-blok').value;
                 const ket = row.querySelector('.p-ket').value;
                 const vol = row.querySelector('.p-vol').value;
                 const hk = row.querySelector('.p-hk').value;
-                
                 const numEmoji = numberEmojis[idx] || `${idx + 1}.`;
-                
+
                 pekerjaanLainText += `${numEmoji} *Blok ${blok}*\n` +
                                     `   • Jenis Kerja : ${ket}\n` +
                                     `   • Volume      : ${vol}\n` +
                                     `   • Tenaga      : ${hk} HK\n`;
-                
-                if (idx < rows.length - 1) {
-                    pekerjaanLainText += `\n───\n\n`;
-                }
+
+                if (idx < rows.length - 1) pekerjaanLainText += `\n───\n\n`;
             });
 
-            let reportText = `📋 *LAPORAN UPKEEP DIVISI 3* 📋\n` +
-                             `PT KAHAYAN AGRO PLANTATION\n` +
-                             `━━━━━━━━━━━━━━\n\n` +
-                             `🗓 *HARI/TANGGAL:* ${tanggal}\n\n` +
-                             `👷 *MANDOR:* WILIBERTUS JARUT\n\n` +
-                             `━━━━━━━━━━━━━━\n\n` +
-                             `🔹 *HASIL KERJA HARI INI*\n\n` +
-                             `• Blok Kerja       : ${blokKerja}\n` +
-                             `• Tenaga Kerja  : ${hkHi} HK\n` +
-                             `• Luas Kerja       : ${haHi} Ha\n` +
-                             `• Pokok Kerja   : ${pokokHi} Pokok\n\n` +
-                             `━━━━━━━━━━━━━━\n\n` +
-                             `🔹 *PROGRES TODATE BLOK ${blokKerja}*\n\n` +
-                             `• Total HK             : ${todateHk}\n` +
-                             `• Total Hari           : ${todateHari}\n` +
-                             `• Total Luas           : ${todateHa} Ha\n` +
-                             `• Total Pokok        : ${todatePokok} Pokok\n\n` +
-                             `• Sisa Pekerjaan   : ${haSisa}\n` +
-                             `• Sisa Pokok         : ${pokokSisa}\n` +
-                             `• Est. Total Sisa HK: ${estHkSisa}\n` +
-                             `• Est. Sisa Hari   : ${estHariSisa}\n\n` +
-                             `━━━━━━━━━━━━━━\n\n` +
-                             `🔹 *REKAP PEKERJAAN HARI INI*\n\n` +
-                             `${pekerjaanLainText}\n\n` +
-                             `━━━━━━━━━━━━━━\n` +
-                             `📊 *TOTAL HK PEKERJAAN LAIN: ${totalHkLainVal}*\n\n` +
-                             `━━━━━━━━━━━━━━\n` +
-                             `TERIMA KASIH`;
+            return `📋 *LAPORAN UPKEEP DIVISI 3* 📋\n` +
+                   `PT KAHAYAN AGRO PLANTATION\n` +
+                   `━━━━━━━━━━━━━━\n\n` +
+                   `🗓 *HARI/TANGGAL:* ${tanggal}\n\n` +
+                   `👷 *MANDOR:* WILIBERTUS JARUT\n\n` +
+                   `━━━━━━━━━━━━━━\n\n` +
+                   `🔹 *HASIL KERJA HARI INI*\n\n` +
+                   `• Blok Kerja       : ${blokKerja}\n` +
+                   `• Tenaga Kerja  : ${hkHi} HK\n` +
+                   `• Luas Kerja       : ${haHi} Ha\n` +
+                   `• Pokok Kerja   : ${pokokHi} Pokok\n\n` +
+                   `━━━━━━━━━━━━━━\n\n` +
+                   `🔹 *TARGET AWAL BLOK ${blokKerja}*\n\n` +
+                   `• HA Awal Blok      : ${haAwal}\n` +
+                   `• Pokok Awal Blok : ${pokokAwal}\n\n` +
+                   `━━━━━━━━━━━━━━\n\n` +
+                   `🔹 *PROGRES TODATE BLOK ${blokKerja}*\n\n` +
+                   `• Total HK             : ${todateHk}\n` +
+                   `• Total Hari           : ${todateHari}\n` +
+                   `• Total Luas           : ${todateHa} Ha\n` +
+                   `• Total Pokok        : ${todatePokok} Pokok\n\n` +
+                   `• Sisa Pekerjaan   : ${haSisa}\n` +
+                   `• Sisa Pokok         : ${pokokSisa}\n` +
+                   `• Est. Total Sisa HK: ${estHkSisa}\n` +
+                   `• Est. Sisa Hari   : ${estHariSisa}\n\n` +
+                   `━━━━━━━━━━━━━━\n\n` +
+                   `🔹 *REKAP PEKERJAAN HARI INI*\n\n` +
+                   `${pekerjaanLainText}\n\n` +
+                   `━━━━━━━━━━━━━━\n` +
+                   `📊 *TOTAL HK PEKERJAAN LAIN: ${totalHkLainVal}*\n\n` +
+                   `━━━━━━━━━━━━━━\n` +
+                   `TERIMA KASIH`;
+        }
 
+        function copyReportToGroup() {
+            const reportText = buildReportText();
             const textarea = document.createElement('textarea');
             textarea.value = reportText;
             document.body.appendChild(textarea);
             textarea.select();
             try {
-                document.execCommand('copy');
-                alert("Laporan berhasil disalin! Silakan paste ke grup WhatsApp.");
+                const copied = document.execCommand('copy');
+                if(copied) {
+                    alert("Laporan berhasil disalin! Silakan paste ke grup WhatsApp.");
+                } else {
+                    alert("Laporan belum berhasil disalin. Silakan coba lagi atau gunakan tombol WhatsApp.");
+                }
             } catch (err) {
-                alert("Gagal menyalin laporan. Silakan salin secara manual.");
+                alert("Gagal menyalin laporan. Silakan gunakan tombol WhatsApp.");
             }
             document.body.removeChild(textarea);
+        }
+
+        function shareReportToWhatsApp() {
+            const reportText = buildReportText();
+            const whatsappUrl = 'https://wa.me/?text=' + encodeURIComponent(reportText);
+            window.open(whatsappUrl, '_blank');
         }
 
         function processLogin() {
@@ -950,6 +1037,9 @@
             };
 
             localStorage.setItem('prunperform_full_data', JSON.stringify(dataToSave));
+            const dailyHistory = getDailyHistory();
+            dailyHistory[getSelectedDateKey()] = dataToSave;
+            localStorage.setItem('prunperform_daily_history', JSON.stringify(dailyHistory));
             renderMasterBlokTable();
             renderPekerjaanLainTab(pekerjaanLainList);
             alert('Data berhasil disimpan secara permanen!');
@@ -1021,6 +1111,9 @@
             const saved = localStorage.getItem('prunperform_full_data');
             if(saved) {
                 const data = JSON.parse(saved);
+                const history = getDailyHistory();
+                const legacyKey = `${data.filterTahun || '2026'}-${data.filterBulan || 'NOVEMBER'}-${data.filterTgl || '03'}`;
+                if(!history[legacyKey]) { history[legacyKey] = data; localStorage.setItem('prunperform_daily_history', JSON.stringify(history)); }
                 
                 if(data.filterHari) document.getElementById('filter-hari').value = data.filterHari;
                 if(data.filterTgl) document.getElementById('filter-tgl').value = data.filterTgl;
@@ -1081,6 +1174,7 @@
         function resetData() {
             if(confirm("Apakah Anda yakin ingin mereset seluruh data?")) {
                 localStorage.removeItem('prunperform_full_data');
+                localStorage.removeItem('prunperform_daily_history');
                 location.reload();
             }
         }
