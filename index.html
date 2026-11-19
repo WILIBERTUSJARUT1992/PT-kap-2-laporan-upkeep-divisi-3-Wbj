@@ -205,11 +205,11 @@
 
         <!-- TAB 1: LAPORAN UTAMA -->
         <div id="laporan-utama" class="tab-content active">
-            <div class="section-title">LAPORAN PRUNING DIVISI 3</div>
+            <div class="section-title">LAPORAN AKTUAL UPKEEP DIVISI-03</div>
             
             <!-- FILTER HARI, TANGGAL, BULAN, TAHUN -->
             <table style="margin-top: 6px;">
-                <tr><th colspan="4" style="background: var(--table-header); color: var(--table-header-text); font-size: 10px;">FILTER HARI, TANGGAL, BULAN & TAHUN KERJA</th></tr>
+                <tr><th colspan="4" style="background: var(--table-header); color: var(--table-header-text); font-size: 10px;"></th></tr>
                 <tr style="font-size: 8.5px; background: #e0e7ff; font-weight: bold;">
                     <td style="width: 25%;">HARI</td>
                     <td style="width: 20%;">TANGGAL</td>
@@ -255,23 +255,31 @@
             </table>
 
             <div style="font-weight: bold; font-size: 10px; margin: 6px 0 3px 0; color: #1e293b;">■ HASIL PEKERJAAN HARI INI & PILIH BLOK</div>
+            <table style="margin-bottom: 5px;">
+                <tr>
+                    <th style="text-align: left; width: 28%;">ITEM PEKERJAAN</th>
+                    <td><input type="text" id="item-pekerjaan-utama" value="Pruning" placeholder="Contoh: Pruning"></td>
+                </tr>
+            </table>
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 28%;">BLOK KERJA</th>
-                        <th style="width: 15%;">HK H.I</th>
-                        <th style="width: 20%;">HA H.I</th>
-                        <th style="width: 22%;">POKOK H.I</th>
-                        <th style="width: 15%;">SPH</th>
+                        <th style="width: 24%;">BLOK KERJA</th>
+                        <th style="width: 13%;">HK PRUNING</th>
+                        <th style="width: 13%;">HK SUSUN PELEPAH</th>
+                        <th style="width: 13%;">SPH</th>
+                        <th style="width: 17%;">HA H.I</th>
+                        <th style="width: 20%;">POKOK H.I</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><select id="select-blok-hi" onchange="syncBlokTarget()"></select></td>
-                        <td><input type="number" id="hk-hi" value="4"></td>
+                        <td><input type="number" id="hk-hi" value="4" placeholder="Pruning"></td>
+                        <td><input type="number" id="hk-susun-hi" value="3" placeholder="HK Susun"></td>
+                        <td><input type="number" id="sph-hi" value="119" readonly></td>
                         <td><input type="number" id="ha-hi" value="1.13" step="0.01"></td>
                         <td><input type="number" id="pokok-hi" value="135"></td>
-                        <td><input type="number" id="sph-hi" value="119" readonly></td>
                     </tr>
                 </tbody>
             </table>
@@ -280,8 +288,8 @@
             <div style="font-weight: bold; font-size: 10px; margin: 6px 0 3px 0; color: #1e293b;">■ TODATE PEKERJAAN BLOK <span id="label-blok-todate" style="color: #2563eb;">L34-OP20</span></div>
             <table>
                 <tr>
-                    <th style="text-align: left; width: 60%;">TODATE HK SUDAH KERJA</th>
-                    <td style="width: 40%;"><input type="text" id="todate-hk" value="5 HK"></td>
+                    <th style="text-align: left; width: 60%;">TODATE HK PRUNING / HK SUSUN PELEPAH</th>
+                    <td style="width: 40%;"><input type="text" id="todate-hk" value="5/0" placeholder="Contoh: 5/4"></td>
                 </tr>
                 <tr>
                     <th style="text-align: left;">TODATE HARI SUDAH KERJA</th>
@@ -577,9 +585,11 @@
             }
             // Tanggal belum memiliki arsip: kosongkan input harian agar data tanggal lain tidak tercampur.
             document.getElementById('hk-hi').value = '';
+            document.getElementById('hk-susun-hi').value = '';
             document.getElementById('ha-hi').value = '';
             document.getElementById('pokok-hi').value = '';
-            document.getElementById('todate-hk').value = '0 HK';
+            document.getElementById('item-pekerjaan-utama').value = 'Pruning';
+            document.getElementById('todate-hk').value = '0/0';
             document.getElementById('todate-hari').value = '0 HARI';
             document.getElementById('todate-ha').value = '0';
             document.getElementById('todate-pokok').value = '0';
@@ -600,8 +610,10 @@
             if(data.selectedBlok) document.getElementById('select-blok-hi').value = data.selectedBlok;
             syncBlokTarget();
             document.getElementById('hk-hi').value = data.hkHI ?? '';
+            document.getElementById('hk-susun-hi').value = data.hkSusunHI ?? '';
             document.getElementById('ha-hi').value = data.haHI ?? '';
             document.getElementById('pokok-hi').value = data.pokokHI ?? '';
+            document.getElementById('item-pekerjaan-utama').value = data.itemPekerjaanUtama ?? 'Pruning';
             document.getElementById('todate-hk').value = data.todateHk ?? '0 HK';
             document.getElementById('todate-hari').value = data.todateHari ?? '0 HARI';
             document.getElementById('todate-ha').value = data.todateHa ?? '0';
@@ -871,8 +883,10 @@
             const tanggal = document.getElementById('input-tanggal-manual').value;
             const blokKerja = document.getElementById('select-blok-hi').value;
             const hkHi = document.getElementById('hk-hi').value;
+            const hkSusunHi = document.getElementById('hk-susun-hi').value;
             const haHi = document.getElementById('ha-hi').value;
             const pokokHi = document.getElementById('pokok-hi').value;
+            const itemPekerjaanUtama = document.getElementById('item-pekerjaan-utama').value.trim() || '-';
 
             // HA awal dan pokok awal mengikuti master data blok yang dipilih.
             const haAwal = document.getElementById('ha-awal').value;
@@ -892,6 +906,11 @@
             let pekerjaanLainText = "";
             const totalHkLainVal = document.getElementById('total-hk-lain').innerText;
             const rows = document.querySelectorAll('#body-pekerjaan-lain tr');
+            const itemPekerjaan = [...rows]
+                .map(row => row.querySelector('.p-ket')?.value.trim())
+                .filter(Boolean);
+            const itemPekerjaanUnik = [...new Set(itemPekerjaan)];
+            const itemPekerjaanText = itemPekerjaanUnik.length ? itemPekerjaanUnik.join(', ') : '-';
 
             rows.forEach((row, idx) => {
                 const blok = row.querySelector('.p-blok').value;
@@ -901,7 +920,7 @@
                 const numEmoji = numberEmojis[idx] || `${idx + 1}.`;
 
                 pekerjaanLainText += `${numEmoji} *Blok ${blok}*\n` +
-                                    `   • Jenis Kerja : ${ket}\n` +
+                                    `   🌴Item pekerjaan : ${ket || '-'}\n` +
                                     `   • Volume      : ${vol}\n` +
                                     `   • Tenaga      : ${hk} HK\n`;
 
@@ -915,17 +934,20 @@
                    `👷 *MANDOR:* WILIBERTUS JARUT\n\n` +
                    `━━━━━━━━━━━━━━\n\n` +
                    `🔹 *HASIL KERJA HARI INI*\n\n` +
-                   `• Blok Kerja       : ${blokKerja}\n` +
-                   `• Tenaga Kerja  : ${hkHi} HK\n` +
-                   `• Luas Kerja       : ${haHi} Ha\n` +
-                   `• Pokok Kerja   : ${pokokHi} Pokok\n\n` +
+                   `🌴Item pekerjaan           : ${itemPekerjaanUtama}\n` +
+                   `• Blok Kerja                     : ${blokKerja}\n` +
+                   `• Tenaga Kerja Pruning : ${hkHi} HK\n` +
+                   `• Tenaga Kerja Susun   : ${hkSusunHi} HK\n` +
+                   `• Luas Kerja                    : ${haHi} Ha\n` +
+                   `• Pokok Kerja                  : ${pokokHi} Pokok\n\n` +
                    `━━━━━━━━━━━━━━\n\n` +
                    `🔹 *TARGET AWAL BLOK ${blokKerja}*\n\n` +
                    `• HA Awal Blok      : ${haAwal}\n` +
                    `• Pokok Awal Blok : ${pokokAwal}\n\n` +
                    `━━━━━━━━━━━━━━\n\n` +
                    `🔹 *PROGRES TODATE BLOK ${blokKerja}*\n\n` +
-                   `• Total HK             : ${todateHk}\n` +
+                   `🌴Item pekerjaan : ${itemPekerjaanUtama}\n` +
+                   `• HK Pruning/HK Susun Pelepah : ${todateHk}\n` +
                    `• Total Hari           : ${todateHari}\n` +
                    `• Total Luas           : ${todateHa} Ha\n` +
                    `• Total Pokok        : ${todatePokok} Pokok\n\n` +
@@ -1022,8 +1044,10 @@
                 filterTahun: document.getElementById('filter-tahun').value,
                 selectedBlok: selectedBlok,
                 hkHI: document.getElementById('hk-hi').value,
+                hkSusunHI: document.getElementById('hk-susun-hi').value,
                 haHI: document.getElementById('ha-hi').value,
                 pokokHI: document.getElementById('pokok-hi').value,
+                itemPekerjaanUtama: document.getElementById('item-pekerjaan-utama').value,
                 todateHk: document.getElementById('todate-hk').value,
                 todateHari: document.getElementById('todate-hari').value,
                 todateHa: document.getElementById('todate-ha').value,
@@ -1130,8 +1154,10 @@
                     syncBlokTarget();
                 }
                 document.getElementById('hk-hi').value = data.hkHI || '';
+                document.getElementById('hk-susun-hi').value = data.hkSusunHI || '';
                 document.getElementById('ha-hi').value = data.haHI || '';
                 document.getElementById('pokok-hi').value = data.pokokHI || '';
+                document.getElementById('item-pekerjaan-utama').value = data.itemPekerjaanUtama || 'Pruning';
                 if(data.todateHk) document.getElementById('todate-hk').value = data.todateHk;
                 if(data.todateHari) document.getElementById('todate-hari').value = data.todateHari;
                 if(data.todateHa) document.getElementById('todate-ha').value = data.todateHa;
